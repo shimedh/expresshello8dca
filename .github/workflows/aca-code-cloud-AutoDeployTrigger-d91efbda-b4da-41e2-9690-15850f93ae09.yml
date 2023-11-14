@@ -1,0 +1,45 @@
+name: Trigger auto deployment for aca-code-cloud
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ main ]
+    paths:
+    - '**'
+    - '.github/workflows/aca-code-cloud-AutoDeployTrigger-d91efbda-b4da-41e2-9690-15850f93ae09.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ACACODECLOUD_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.ACACODECLOUD_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.ACACODECLOUD_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }} 
+          registryUrl: containerregistry5mpzduhal6epc.azurecr.io
+          registryUsername: ${{ secrets.ACACODECLOUD_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.ACACODECLOUD_REGISTRY_PASSWORD }}
+          containerAppName: aca-code-cloud
+          resourceGroup: test-rg1
+          imageToBuild: containerregistry5mpzduhal6epc.azurecr.io/aca-code-cloud:${{ github.sha }}
+          
+
+
